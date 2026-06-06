@@ -725,7 +725,10 @@ async def services(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text += f"{DIV}"
     keyboard = [[InlineKeyboardButton(_("btn_book_now", chat_id, context), callback_data="menu_book")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    else:
+        await update.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML")
 
 async def show_languages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -764,15 +767,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "menu_about":
         await about(update, context)
+        return
 
     elif data == "menu_services":
-        text = f"{_('services_title', chat_id, context)}\n{DIV}\n\n"
-        for key, service in SERVICES.items():
-            text += f"{service['emoji']} <b>{service['name']}</b>\n   └ {service['desc']}\n   └ 💰 {service['price']}\n\n"
-        text += f"{DIV}"
-        keyboard = [[InlineKeyboardButton(_("btn_book_now", chat_id, context), callback_data="menu_book")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="HTML")
+        await services(update, context)
 
     elif data == "menu_book":
         await show_services_for_booking(update, context)
@@ -830,15 +828,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("serv_"):
         service_key = data.replace("serv_", "")
         context.user_data["selected_service"] = service_key
-        service = SERVICES[service_key]
-        await query.edit_message_text(
-            f"{service['emoji']} <b>{service['name']}</b>\n"
-            f"{DIV}\n\n{service['desc']}\n\n"
-            f"💰 <b>{service['price']}</b>\n\n"
-            f"{DIV_THIN}\n\n"
-            f"{_('select_service_title', chat_id, context)}",
-            parse_mode="HTML"
-        )
         await show_days(query, context)
 
     elif data.startswith("day_"):
